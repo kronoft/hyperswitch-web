@@ -9,8 +9,11 @@ let cardBin = (cardNumber: string): option<string> => {
   bin->String.length == binLength && /^\d+$/->RegExp.test(bin) ? Some(bin) : None
 }
 
-// The BIN to send now: only when the first 8 digits differ from those last sent.
-let binToSend = (~lastSent: option<string>, ~cardNumber: string): option<string> =>
+// The BIN to send now: only when the list turns the call on and the first 8 digits differ from
+// those last sent.
+let binToSend = (~enabled as _: bool=true, ~lastSent: option<string>, ~cardNumber: string): option<
+  string,
+> =>
   switch cardBin(cardNumber) {
   | Some(bin) if lastSent != Some(bin) => Some(bin)
   | _ => None
@@ -33,6 +36,10 @@ let shownOptions = (~eligibility: option<array<'a>>, ~merchant: array<'a>) =>
   | Some(options) if options->Array.length > 0 => options
   | _ => merchant
   }
+
+// The installment options once an eligibility answer lands.
+let optionsAfterAnswer = (~current as _: option<'a>, ~fromBinCall as _: bool, ~answered: option<'a>) =>
+  answered
 
 // Whether a pending eligibility check holds confirm.
 let blocksConfirm = (~shouldBlockConfirm, ~isEligibilityPending) =>

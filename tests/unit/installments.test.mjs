@@ -6,17 +6,18 @@ import {
   binToSend,
   cardBinEligibilityBody,
   shownOptions,
+  optionsAfterAnswer,
   blocksConfirm,
 } from "../../src/Utilities/InstallmentBin.bs.js";
 
 const CARD = "4000015012345678";
 
 // The calls a card typed, edited or cut back makes, as the SDK keeps the BIN last sent.
-const sent = (numbers) => {
+const sent = (numbers, enabled = true) => {
   let lastSent;
   const calls = [];
   for (const cardNumber of numbers) {
-    const bin = binToSend(lastSent, cardNumber);
+    const bin = binToSend(enabled, lastSent, cardNumber);
     if (bin !== undefined) calls.push(bin);
     lastSent = cardBin(cardNumber);
   }
@@ -40,6 +41,21 @@ test("a typed card sends its BIN once, and again only when it changes", () => {
   // Never on fewer than 8: cut back to 7, nothing is sent; typed again, the BIN is sent again.
   assert.deepEqual(sent([CARD, "4000015", "40000150"]), ["40000150", "40000150"]);
   assert.deepEqual(sent(typed("4000015")), []);
+});
+
+test("without the list's card_bin_eligibility, no BIN call: upstream's calls only", () => {
+  assert.deepEqual(sent(typed(CARD), false), []);
+  assert.deepEqual(sent([CARD, "5100015012345678"], false), []);
+});
+
+test("only the BIN call's answer sets the options, whatever lands last", () => {
+  const provider = [{ payment_method: "card", available_plans: [{ number_of_installments: 3 }] }];
+  const shown = optionsAfterAnswer(undefined, true, provider);
+  assert.equal(shown, provider);
+  // Upstream's full-number answer, without installment_options, lands after: the options stay.
+  assert.equal(optionsAfterAnswer(shown, false, undefined), provider);
+  // A later BIN's answer replaces them, and one without options clears them.
+  assert.equal(optionsAfterAnswer(shown, true, undefined), undefined);
 });
 
 test("the body carries the 8 digits only, never the card number", () => {
