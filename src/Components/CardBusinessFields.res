@@ -16,6 +16,7 @@ let make = (
   ~setInstallmentsError,
   ~eligibilityOfferDetails,
   ~isEligibilityPending=false,
+  ~eligibilityInstallmentOptions=None,
 ) => {
   <>
     <DynamicFields
@@ -37,6 +38,7 @@ let make = (
       paymentMethod
       errorString=installmentsError
       setErrorString=setInstallmentsError
+      eligibilityOptions=eligibilityInstallmentOptions
     />
   </>
 }

@@ -195,6 +195,7 @@ let make = (
     eligibilitySurchargeDetails,
     eligibilityOfferDetails,
     isEligibilityPending,
+    eligibilityInstallmentOptions,
     triggerOnCardNumberChange,
     resetEligibilityState: _,
   } = UseCardEligibility.useCardEligibility(
@@ -838,7 +839,10 @@ let make = (
           isNicknameValid &&
           isInstallmentValid &&
           cardEligibilityError->Option.isNone &&
-          !(paymentMethodListValue.should_block_confirm && isEligibilityPending)
+          !InstallmentBin.blocksConfirm(
+            ~shouldBlockConfirm=paymentMethodListValue.should_block_confirm,
+            ~isEligibilityPending,
+          )
         let innerMessage = json->getDictFromJson
         innerMessage->Dict.set("isOuterValid", outerValid->JSON.Encode.bool)
 
@@ -982,7 +986,12 @@ let make = (
             setUserError(localeString.enterValidDetailsText)
           } else if !isInstallmentValid {
             setUserError(localeString.installmentSelectPlanError)
-          } else if isEligibilityPending && paymentMethodListValue.should_block_confirm {
+          } else if (
+            InstallmentBin.blocksConfirm(
+              ~shouldBlockConfirm=paymentMethodListValue.should_block_confirm,
+              ~isEligibilityPending,
+            )
+          ) {
             setUserError(localeString.paymentDetailsBeingCheckedText)
           } else if cardEligibilityError->Option.isSome {
             setUserError(
@@ -1078,6 +1087,7 @@ let make = (
               setInstallmentsError
               eligibilityOfferDetails
               isEligibilityPending
+              eligibilityInstallmentOptions
             />
             <RenderIf condition=isRawMode>
               <EligibilityNotice

@@ -1,17 +1,39 @@
 // An installment provider's options for the card being typed: its first 8 digits go to the
 // eligibility call, never more and never fewer.
 
+let binLength = 8
+
 // The card's first 8 digits, once 8 are typed.
-let cardBin = (_cardNumber: string): option<string> => None
+let cardBin = (cardNumber: string): option<string> => {
+  let bin = cardNumber->String.slice(~start=0, ~end=binLength)
+  bin->String.length == binLength && /^\d+$/->RegExp.test(bin) ? Some(bin) : None
+}
 
 // The BIN to send now: only when the first 8 digits differ from those last sent.
-let binToSend = (~lastSent as _: option<string>, ~cardNumber as _: string): option<string> => None
+let binToSend = (~lastSent: option<string>, ~cardNumber: string): option<string> =>
+  switch cardBin(cardNumber) {
+  | Some(bin) if lastSent != Some(bin) => Some(bin)
+  | _ => None
+  }
 
 // The eligibility call's body for a BIN.
-let cardBinEligibilityBody = (_bin: string): array<(string, JSON.t)> => []
+let cardBinEligibilityBody = (bin: string): array<(string, JSON.t)> => [
+  ("payment_method_type", "card"->JSON.Encode.string),
+  (
+    "payment_method_data",
+    [("card_bin", [("card_bin", bin->JSON.Encode.string)]->Dict.fromArray->JSON.Encode.object)]
+    ->Dict.fromArray
+    ->JSON.Encode.object,
+  ),
+]
 
 // The options to show: the eligibility answer's when it has any, otherwise the merchant's.
-let shownOptions = (~eligibility as _: option<array<'a>>, ~merchant: array<'a>) => merchant
+let shownOptions = (~eligibility: option<array<'a>>, ~merchant: array<'a>) =>
+  switch eligibility {
+  | Some(options) if options->Array.length > 0 => options
+  | _ => merchant
+  }
 
 // Whether a pending eligibility check holds confirm.
-let blocksConfirm = (~shouldBlockConfirm, ~isEligibilityPending as _) => shouldBlockConfirm
+let blocksConfirm = (~shouldBlockConfirm, ~isEligibilityPending) =>
+  shouldBlockConfirm && isEligibilityPending
