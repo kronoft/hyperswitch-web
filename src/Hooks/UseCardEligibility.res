@@ -63,8 +63,12 @@ let useCardEligibility = (~logger, ~runEligibility=true): eligibilityState => {
 
         // Only the answer for the digits typed now.
         if lastBinRef.current == Some(bin) {
-          setEligibilityInstallmentOptions(_ =>
-            json->Utils.getDictFromJson->PaymentMethodsRecord.getInstallmentOptions
+          setEligibilityInstallmentOptions(current =>
+            InstallmentBin.optionsAfterAnswer(
+              ~current,
+              ~fromBinCall=true,
+              ~answered=json->Utils.getDictFromJson->PaymentMethodsRecord.getInstallmentOptions,
+            )
           )
         }
       } catch {
@@ -125,7 +129,11 @@ let useCardEligibility = (~logger, ~runEligibility=true): eligibilityState => {
   let triggerOnCardNumberChange = (~cardNumber, ~isCardSupportedAndValid) => {
     let shouldRunEligibility = paymentMethodListValue.sdk_next_action === Some("eligibility_check")
     if runEligibility && shouldRunEligibility {
-      switch InstallmentBin.binToSend(~lastSent=lastBinRef.current, ~cardNumber) {
+      switch InstallmentBin.binToSend(
+        ~enabled=paymentMethodListValue.card_bin_eligibility,
+        ~lastSent=lastBinRef.current,
+        ~cardNumber,
+      ) {
       | Some(bin) =>
         setEligibilityInstallmentOptions(_ => None)
         startBinDebounce(() => checkInstallmentOptions(~bin)->ignore)

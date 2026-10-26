@@ -914,6 +914,7 @@ type paymentMethodList = {
   intent_data: intentData,
   sdk_next_action: option<string>,
   should_block_confirm: bool,
+  card_bin_eligibility: bool,
 }
 
 let defaultPaymentMethodType = {
@@ -946,6 +947,7 @@ let defaultList = {
   intent_data: defaultIntentData,
   sdk_next_action: None,
   should_block_confirm: false,
+  card_bin_eligibility: false,
 }
 
 let getPaymentExperienceType = str => {
@@ -1161,6 +1163,8 @@ let itemToObjMapperFromClientList = dict => {
     should_block_confirm: dict
     ->getDictFromDict("sdk_next_action")
     ->getBool("should_block_confirm", false),
+    // An installment provider's options come from an eligibility call with the BIN only.
+    card_bin_eligibility: dict->getBool("card_bin_eligibility", false),
   }
 }
 

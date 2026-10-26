@@ -11,11 +11,9 @@ let cardBin = (cardNumber: string): option<string> => {
 
 // The BIN to send now: only when the list turns the call on and the first 8 digits differ from
 // those last sent.
-let binToSend = (~enabled as _: bool=true, ~lastSent: option<string>, ~cardNumber: string): option<
-  string,
-> =>
+let binToSend = (~enabled: bool, ~lastSent: option<string>, ~cardNumber: string): option<string> =>
   switch cardBin(cardNumber) {
-  | Some(bin) if lastSent != Some(bin) => Some(bin)
+  | Some(bin) if enabled && lastSent != Some(bin) => Some(bin)
   | _ => None
   }
 
@@ -38,8 +36,10 @@ let shownOptions = (~eligibility: option<array<'a>>, ~merchant: array<'a>) =>
   }
 
 // The installment options once an eligibility answer lands.
-let optionsAfterAnswer = (~current as _: option<'a>, ~fromBinCall as _: bool, ~answered: option<'a>) =>
-  answered
+// Only the BIN call's answer sets them: upstream's full-number answer never does, whatever lands
+// last.
+let optionsAfterAnswer = (~current: option<'a>, ~fromBinCall: bool, ~answered: option<'a>) =>
+  fromBinCall ? answered : current
 
 // Whether a pending eligibility check holds confirm.
 let blocksConfirm = (~shouldBlockConfirm, ~isEligibilityPending) =>
